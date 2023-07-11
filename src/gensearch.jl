@@ -92,6 +92,10 @@ function alt_test_dsep(g, X, Y, S, veto = no_veto)
     return length(intersect(bayesball(g, X, S, veto), Y)) == 0 
 end 
 
+function pcp(g, X, Y)
+    return intersect(setdiff(descendants(g, X, no_incoming(X)), X), ancestors(g, Y, no_outgoing(X)))
+end
+
 """
     test_covariate_adjustment(g, X, Y, S)
 
@@ -156,10 +160,6 @@ function find_min_dsep(g, X, Y, I = Set{eltype(g)}(), R = setdiff(Set(vertices(g
     return union(intersect(ZX, closure(g, Y, A, ZX, veto)), I)
 end
 
-function pcp(g, X, Y)
-    return intersect(setdiff(descendants(g, X, no_incoming(X)), X), ancestors(g, Y, no_outgoing(X))
-)
-end
 
 """
     find_covariate_adjustment(g, X, Y, I = Set{eltype(g)}(), R = setdiff(Set(vertices(g)), X, Y))
@@ -178,6 +178,21 @@ function find_covariate_adjustment(g, X, Y, I = Set{eltype(g)}(), R = setdiff(Se
         return false
     end
 end
+
+
+# work in progress...
+function find_optimal_covariate_adjustment(g, X, Y, I = Set{eltype(g)}(), R = setdiff(Set(vertices(g)), X, Y)) 
+    X, Y, I, R = toset.((X, Y, I, R))
+    PCPXY = pcp(g, X, Y)
+    forb = union(descendants(PCPXY), X)
+    Oset = setdiff(Set(flatten(inneighbors(g, v) for v in PCPXY)), forb)
+    if issubset(I, Z) && alt_test_dsep(g, X, Y, Z, (pe, ne, v, w) -> v in X && w in PCPXY && ne == RIGHT)
+        return Z
+    else
+        return false
+    end
+end
+
 
 """
     find_backdoor_adjustment(g, X, Y, I = Set{eltype(g)}(), R = setdiff(Set(vertices(g)), X, Y))
