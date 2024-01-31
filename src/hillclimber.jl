@@ -32,9 +32,7 @@ function next_graph(g, local_score)
             push!(moves, move(g, u, v, :insert, local_score))
         end
     end
-    #println(moves)
     filter!(mv -> !is_cyclic(mv[2]), moves)
-    #println(moves)
     return argmax(first, moves)
 end
 
@@ -49,7 +47,6 @@ function hill_climber(n, local_score, g=DiGraph(n))
             break
         end
     end
-    # println(length(edges(g)))
     return g
 end
 
