@@ -38,7 +38,7 @@ end
 
 
 # also call with complete DAG and random edge orientations
-function hill_climber(n, local_score, g=DiGraph(n)) 
+function hill_climber(n::Integer, local_score, g=DiGraph(n))
     while true
         Δscore, nextg = next_graph(g, local_score)
         if Δscore > 10^-9
@@ -47,20 +47,23 @@ function hill_climber(n, local_score, g=DiGraph(n))
             break
         end
     end
-    return g
+    return alt_cpdag(g)
 end
 
-function hill_climber(X::AbstractMatrix; method=:gaussian_bic, penalty=0.5)
+function hill_climber(X::AbstractMatrix; method=:gaussian_bic, penalty=0.5, init_graph=DiGraph())
     (_, n) = size(X)
+    length(vertices(init_graph)) < n && (init_graph = DiGraph(n))
     if method == :gaussian_bic
         C = Symmetric(cov(X, dims = 1, corrected = false))
         S = GaussianScore(C, n, penalty)
-        return hill_climber(n, (p, v) -> local_score(S, p, v))
+        return hill_climber(n, (p, v) -> local_score(S, p, v), init_graph)
     elseif method == :gaussian_bic_raw
         S = GaussianScoreQR(X, penalty)
-        return hill_climber(n, (p, v) -> local_score(S, p, v))
+        return hill_climber(n, (p, v) -> local_score(S, p, v), init_graph)
     else 
         throw(ArgumentError("method=$method"))
     end
 end
-hill_climber(X; method=:gaussian_bic, penalty=0.5) = hill_climber(Tables.matrix(X); method, penalty)
+hill_climber(X; method=:gaussian_bic, penalty=0.5, init_graph=DiGraph()) = hill_climber(Tables.matrix(X); method, penalty, init_graph)
+
+
