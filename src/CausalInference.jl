@@ -12,6 +12,7 @@ using LinkedLists
 
 import Base: ==, show
 
+export hill_climber
 export exactscorebased
 export ancestors, descendants, alt_test_dsep, test_covariate_adjustment, alt_test_backdoor, find_dsep, find_min_dsep, find_covariate_adjustment, find_backdoor_adjustment, find_frontdoor_adjustment, find_min_covariate_adjustment, find_min_backdoor_adjustment, find_min_frontdoor_adjustment, list_dseps, list_covariate_adjustment, list_backdoor_adjustment, list_frontdoor_adjustment
 export dsep, skeleton, gausscitest, dseporacle, partialcor
@@ -34,6 +35,7 @@ export count_moves_uniform, randcpdag, UniformScore, causalzigzag
 export keyedreduce
 
 #include("pinv.jl")
+include("hillclimber.jl")
 include("graphs.jl")
 include("combinations_without.jl")
 include("klentropy.jl")
