@@ -76,8 +76,31 @@ function descendants(g, X, veto = no_veto)
     return gensearch(g, X, (pe, ne, v, w) -> ne == RIGHT && !veto(pe, ne, v, w))
 end
 
+"""
+    bayesball(g, X, S = Set{eltype(g)}())
+
+Return the set of vertices d-connected to the set of vertices X given set of vertices S in dag g.
+"""
 function bayesball(g, X, S = Set{eltype(g)}(), veto = no_veto)
     return gensearch(g, X, (pe, ne, v, w) -> !veto(pe, ne, v, w) && (pe == INIT || (v in S && pe == RIGHT && ne == LEFT) || (!(v in S) && !(pe == RIGHT && ne == LEFT))))
+end
+
+
+"""
+    bayesball_graph(g, X, S = Set{eltype(g)}(); back=false)
+
+Return an mixed graph `b` containing edges for possible moves of the
+Bayes ball. Vertex `x` of `g` is vertex  "`x` forward" at `2x-1` of `b`
+if entered forward and "`x` backward" at `2x` if entered backward.
+`y` is d-connected to `x` given `S` if and only if there is a 
+semi-directed path in `b` from "`x` backward" to "`y` forward"
+ or "`y` backward"). `back=true` allows path through `X`
+"""
+function bayesball_graph(g, X, S = Set{eltype(g)}(); back=false)
+    ι(e, i) = e == RIGHT ? 2i-1 : 2i 
+    edges = Pair{Int,Int}[]
+    CausalInference.gensearch(g, X, (pe, ne, v, w) ->  (pe == INIT || (v in S && pe == RIGHT && ne == LEFT) || (!(v in S) && !(pe == RIGHT && ne == LEFT))) && (back || w ∉ X) && (push!(edges, ι(pe, v)=>ι(ne, w)); true))
+    CausalInference.digraph(edges, 2*nv(g))
 end
 
 """
