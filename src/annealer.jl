@@ -8,7 +8,7 @@ function propose_move(g)
             rand() < 0.5 && continue # to choose moves uniformly...hopefully
             !has_path(g, v, u) && return 1, u, v
         else 
-            if has_edge(v, u) 
+            if has_edge(g, v, u) 
                 tmp = u
                 u = v 
                 v = tmp
@@ -31,7 +31,7 @@ function makemove!(g, mv, u, v)
     mv == 2 && (rem_edge!(g, u, v) || add_edge!(g, v, u))
 end
 
-function basicannealer(n, G = DiGraph(n), score)
+function basicannealer(n, G, score)
     iterations = 1_000_000
     g = G 
     s = 0
@@ -44,7 +44,7 @@ function basicannealer(n, G = DiGraph(n), score)
         if exp(delta / temperature) >= rand() 
             makemove!(g, mv, u, v)
             s += delta 
-            if score > opts
+            if s > opts
                 optg = g
                 opts = s
             end
@@ -55,7 +55,7 @@ end
 
 function basicannealer(X::AbstractMatrix; method=:gaussian_bic, penalty=0.5)
     (N, n) = size(X)
-    d ≥ n && @warn "High dimensional data (n ≤ p), ges might not terminate."
+    n ≥ N && @warn "High dimensional data (n ≤ p), ges might not terminate."
     if method == :gaussian_bic
         C = Symmetric(cov(X, dims = 1, corrected = false))
         S = GaussianScore(C, N, penalty)
