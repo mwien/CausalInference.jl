@@ -20,37 +20,45 @@ function propose_move(g)
 end
 
 function deltascore(g, score, mv, u, v) 
-    mv == 0 && return Δscore(score, inneighbors(g, v), u, v)
-    mv == 1 && return -Δscore(score, setdiff(inneighbors(g, v), u), u, v)
+    mv == 0 && return -Δscore(score, setdiff(inneighbors(g, v), u), u, v)
+    mv == 1 && return Δscore(score, inneighbors(g, v), u, v)
     mv == 2 && return -Δscore(score, setdiff(inneighbors(g, v), u), u, v) + Δscore(score, inneighbors(g, u), v, u)
 end
 
 function makemove!(g, mv, u, v) 
     mv == 0 && rem_edge!(g, u, v)
     mv == 1 && add_edge!(g, u, v)
-    mv == 2 && (rem_edge!(g, u, v) || add_edge!(g, v, u))
+    if mv == 2 
+        rem_edge!(g, u, v) 
+        add_edge!(g, v, u)
+    end
 end
 
 function basicannealer(n, G, score)
-    iterations = 1_000_000
+    iterations = 10_000_000
     g = G 
-    s = 0
+    s = score_dag(g, score)
     optg = G
     opts = s
     for iter in 1:iterations 
         temperature = 1.0 - iter/iterations 
         mv, u, v = propose_move(g)
         delta = deltascore(g, score, mv, u, v)
+        println(delta)
+        println(exp(delta / temperature))
         if exp(delta / temperature) >= rand() 
             makemove!(g, mv, u, v)
             s += delta 
             if s > opts
-                optg = g
+                optg = copy(g)
                 opts = s
+                println(iter)
+                println(s)
+                println(score_dag(g, score))
             end
         end
     end
-    return g
+    return alt_cpdag(optg)
 end
 
 function basicannealer(X::AbstractMatrix; method=:gaussian_bic, penalty=0.5)
