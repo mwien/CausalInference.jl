@@ -34,8 +34,7 @@ function makemove!(g, mv, u, v)
     end
 end
 
-function basicannealer(n, N, G, score)
-    iterations = 1_000_000
+function basicannealer(N, G, score, iterations)
     g = G 
     s = 0.0
     optg = G
@@ -56,19 +55,19 @@ function basicannealer(n, N, G, score)
     return alt_cpdag(optg)
 end
 
-function basicannealer(X::AbstractMatrix; method=:gaussian_bic, penalty=0.5)
+function basicannealer(X::AbstractMatrix; method=:gaussian_bic, penalty=0.5, iterations=1_000_000)
     (N, n) = size(X)
     n ≥ N && @warn "High dimensional data (n ≤ p), ges might not terminate."
     if method == :gaussian_bic
         C = Symmetric(cov(X, dims = 1, corrected = false))
         S = GaussianScore(C, N, penalty)
-        return basicannealer(n, N, DiGraph(n), S)
+        return basicannealer(N, DiGraph(n), S, iterations)
     elseif method == :gaussian_bic_raw
         S = GaussianScoreQR(X, penalty)
-        return basicannealer(n, N, DiGraph(n), S)
+        return basicannealer(N, DiGraph(n), S, iterations)
     else 
         throw(ArgumentError("method=$method"))
     end
 end
 
-basicannealer(X; method=:gaussian_bic, penalty=0.5) = basicannealer(Tables.matrix(X); method, penalty)
+basicannealer(X; method=:gaussian_bic, penalty=0.5, iterations = 1_000_000) = basicannealer(Tables.matrix(X); method, penalty, iterations)
