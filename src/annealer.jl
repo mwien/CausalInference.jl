@@ -5,8 +5,8 @@ function propose_move(g)
         v = rand(1:n)
         u == v && continue 
         if !isadjacent(g, u, v) 
-            rand() < 0.5 && continue # to choose moves uniformly...hopefully
-            !has_path(g, v, u) && return 1, u, v
+            rand() < 0.5 && !has_path(g, u, v) && return 1, v, u # insert v -> u 
+            !has_path(g, v, u) && return 1, u, v # insert u -> v
         else 
             if has_edge(g, v, u) 
                 tmp = u
@@ -14,7 +14,7 @@ function propose_move(g)
                 v = tmp
             end
             rand() < 0.5 && return 0, u, v # delete u -> v
-            has_a_path(g, setdiff(outneighbors(g, u), v), v) && return 2, u, v # reverse u -> v
+            !has_a_path(g, setdiff(outneighbors(g, u), v), v) && return 2, u, v # reverse u -> v
         end
     end
 end
@@ -34,27 +34,22 @@ function makemove!(g, mv, u, v)
     end
 end
 
-function basicannealer(n, G, score)
-    iterations = 10_000_000
+function basicannealer(n, N, G, score)
+    iterations = 1_000_000
     g = G 
-    s = score_dag(g, score)
+    s = 0.0
     optg = G
     opts = s
     for iter in 1:iterations 
-        temperature = 1.0 - iter/iterations 
+        temperature = (1.0 - iter/iterations) * log(N)
         mv, u, v = propose_move(g)
         delta = deltascore(g, score, mv, u, v)
-        println(delta)
-        println(exp(delta / temperature))
         if exp(delta / temperature) >= rand() 
             makemove!(g, mv, u, v)
             s += delta 
             if s > opts
                 optg = copy(g)
                 opts = s
-                println(iter)
-                println(s)
-                println(score_dag(g, score))
             end
         end
     end
@@ -67,10 +62,10 @@ function basicannealer(X::AbstractMatrix; method=:gaussian_bic, penalty=0.5)
     if method == :gaussian_bic
         C = Symmetric(cov(X, dims = 1, corrected = false))
         S = GaussianScore(C, N, penalty)
-        return basicannealer(n, DiGraph(n), S)
+        return basicannealer(n, N, DiGraph(n), S)
     elseif method == :gaussian_bic_raw
         S = GaussianScoreQR(X, penalty)
-        return basicannealer(n, DiGraph(n), S)
+        return basicannealer(n, N, DiGraph(n), S)
     else 
         throw(ArgumentError("method=$method"))
     end
