@@ -40,7 +40,7 @@ function basicannealer(N, G, score, iterations)
     optg = G
     opts = s
     for iter in 1:iterations 
-        temperature = (1.0 - iter/iterations) * log(N)
+        temperature = (1.0 - iter/iterations) * 10
         mv, u, v = propose_move(g)
         delta = deltascore(g, score, mv, u, v)
         if exp(delta / temperature) >= rand() 
@@ -71,3 +71,48 @@ function basicannealer(X::AbstractMatrix; method=:gaussian_bic, penalty=0.5, ite
 end
 
 basicannealer(X; method=:gaussian_bic, penalty=0.5, iterations = 1_000_000) = basicannealer(Tables.matrix(X); method, penalty, iterations)
+
+function preorientannealer(N, G, score, iterations, preorientations)
+    g = G 
+    s = 0.0
+    optg = G
+    opts = s
+    iter = 1
+    while true
+        iter > iterations && break
+        temperature = (1.0 - iter/iterations) * 10
+        mv, u, v = propose_move(g)
+        mv == 1 && preorientations[u, v] == 0 && continue 
+        mv == 2 && preorientations[v, u] == 0 && continue
+        iter += 1
+        delta = deltascore(g, score, mv, u, v)
+        if exp(delta / temperature) >= rand() 
+            makemove!(g, mv, u, v)
+            s += delta 
+            if s > opts
+                optg = copy(g)
+                opts = s
+            end
+        end
+    end
+    return alt_cpdag(optg)
+end
+
+function preorientannealer(X::AbstractMatrix, preorientations; method=:gaussian_bic, penalty=0.5, iterations=1_000_000)
+    (N, n) = size(X)
+    n ≥ N && @warn "High dimensional data (n ≤ p), ges might not terminate."
+    if method == :gaussian_bic
+        C = Symmetric(cov(X, dims = 1, corrected = false))
+        S = GaussianScore(C, N, penalty)
+        return preorientannealer(N, DiGraph(n), S, iterations, preorientations)
+    elseif method == :gaussian_bic_raw
+        S = GaussianScoreQR(X, penalty)
+        return preorientannealer(N, DiGraph(n), S, iterations, preorientations)
+    else 
+        throw(ArgumentError("method=$method"))
+    end
+end
+
+preorientannealer(X, preorientations; method=:gaussian_bic, penalty=0.5, iterations = 1_000_000) = preorientannealer(Tables.matrix(X), preorientations; method, penalty, iterations)
+
+
